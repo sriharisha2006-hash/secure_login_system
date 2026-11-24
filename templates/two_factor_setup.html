@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}Setup Two-Factor Authentication - SecureAuth{% endblock %}
+
+{% block content %}
+<div class="setup-wrapper">
+    <div class="setup-card">
+        <!-- Header -->
+        <div class="setup-header">
+            <div class="setup-badge">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    <circle cx="12" cy="11" r="3"></circle>
+                    <path d="M12 14v3"></path>
+                </svg>
+            </div>
+            <h1 class="setup-title">Enable Two-Factor Authentication (2FA)</h1>
+            <p class="setup-subtitle">Add an impenetrable second layer of security using any TOTP Authenticator app</p>
+        </div>
+
+        <div class="setup-steps">
+            <!-- Step 1: Scan QR Code -->
+            <div class="step-card">
+                <div class="step-number">Step 1</div>
+                <h2 class="step-heading">Scan QR Code with Authenticator App</h2>
+                <p class="step-description">
+                    Open Google Authenticator, Microsoft Authenticator, Authy, or 1Password on your mobile device and scan this QR code.
+                </p>
+
+                <div class="qr-code-wrapper">
+                    <img src="{{ qr_code }}" alt="2FA QR Code" class="qr-code-img">
+                </div>
+
+                <div class="manual-entry-box">
+                    <span class="manual-entry-label">Unable to scan? Enter this secret key manually:</span>
+                    <div class="secret-key-display">
+                        <code id="secretKey">{{ secret }}</code>
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="copyToClipboard('{{ secret }}', this)">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            Copy
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Emergency Recovery Codes -->
+            <div class="step-card">
+                <div class="step-number">Step 2</div>
+                <h2 class="step-heading">Save Your Emergency Backup Codes</h2>
+                <p class="step-description">
+                    If you lose access to your phone, these one-time recovery codes are the <strong>only way</strong> to regain access to your account.
+                </p>
+
+                <div class="backup-codes-grid">
+                    {% for code in backup_codes %}
+                        <div class="backup-code-item"><code>{{ code }}</code></div>
+                    {% endfor %}
+                </div>
+
+                <div class="backup-actions">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="copyBackupCodes()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        Copy All Codes
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="window.print()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                        Print / Save PDF
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 3: Verification -->
+            <div class="step-card">
+                <div class="step-number">Step 3</div>
+                <h2 class="step-heading">Verify &amp; Activate</h2>
+                <p class="step-description">
+                    Enter the 6-digit confirmation code currently displayed in your authenticator app to finish setup.
+                </p>
+
+                <form action="{{ url_for('setup_2fa') }}" method="POST" class="auth-form" id="confirm2faForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                    <div class="form-group text-center">
+                        <input 
+                            type="text" 
+                            name="totp_code" 
+                            id="totp_code" 
+                            class="form-control form-control-totp" 
+                            placeholder="&bull;&bull;&bull; &bull;&bull;&bull;" 
+                            maxlength="7" 
+                            required 
+                            inputmode="numeric" 
+                            autocomplete="one-time-code"
+                        >
+                    </div>
+
+                    <div class="d-flex gap-2 justify-content-center">
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            Confirm &amp; Activate 2FA
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function copyToClipboard(text, btn) {
+        navigator.clipboard.writeText(text).then(() => {
+            const original = btn.innerHTML;
+            btn.innerHTML = '<span>Copied!</span>';
+            setTimeout(() => { btn.innerHTML = original; }, 2000);
+        });
+    }
+
+    function copyBackupCodes() {
+        const codes = Array.from(document.querySelectorAll('.backup-code-item code')).map(c => c.textContent).join('\n');
+        navigator.clipboard.writeText(codes).then(() => {
+            alert('Backup codes copied to clipboard! Store them in a secure password manager.');
+        });
+    }
+
+    // Auto format TOTP
+    const totp = document.getElementById('totp_code');
+    totp.addEventListener('input', (e) => {
+        let val = e.target.value.replace(/\D/g, '').slice(0, 6);
+        if (val.length > 3) {
+            e.target.value = val.slice(0, 3) + ' ' + val.slice(3);
+        } else {
+            e.target.value = val;
+        }
+    });
+</script>
+{% endblock %}

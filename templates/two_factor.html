@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Two-Factor Verification - Secure Login{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-card">
+        <!-- Auth Header -->
+        <div class="auth-header">
+            <div class="auth-badge auth-badge-2fa">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    <circle cx="12" cy="11" r="3"></circle>
+                    <path d="M12 14v3"></path>
+                </svg>
+            </div>
+            <h1 class="auth-title">Two-Factor Authentication</h1>
+            <p class="auth-subtitle">Verify your identity for <strong>{{ email }}</strong></p>
+        </div>
+
+        <!-- 2FA Form -->
+        <form action="{{ url_for('login_2fa') }}" method="POST" class="auth-form" id="twoFactorForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+            <!-- Standard 6-Digit App Code Section -->
+            <div id="totpSection">
+                <div class="form-group text-center">
+                    <label for="totp_code" class="form-label">Enter 6-Digit Authenticator Code</label>
+                    <p class="form-helper-text">Open Google Authenticator, Authy, or your 2FA app</p>
+                    <input 
+                        type="text" 
+                        name="totp_code" 
+                        id="totp_code" 
+                        class="form-control form-control-totp" 
+                        placeholder="&bull;&bull;&bull; &bull;&bull;&bull;" 
+                        maxlength="7" 
+                        autocomplete="one-time-code" 
+                        inputmode="numeric" 
+                        autofocus
+                    >
+                </div>
+            </div>
+
+            <!-- Alternative: Backup Recovery Code Section -->
+            <div id="backupSection" class="hidden">
+                <div class="form-group">
+                    <label for="backup_code" class="form-label">Enter Backup Recovery Code</label>
+                    <p class="form-helper-text">Enter one of the 8-character emergency recovery codes generated during setup</p>
+                    <input 
+                        type="text" 
+                        name="backup_code" 
+                        id="backup_code" 
+                        class="form-control text-center code-font" 
+                        placeholder="XXXX-XXXX" 
+                        maxlength="9"
+                        autocomplete="off"
+                    >
+                </div>
+            </div>
+
+            <!-- Switch Between Code and Backup Code -->
+            <div class="text-center my-3">
+                <button type="button" class="btn-link-action" id="toggleBackupBtn">
+                    Use emergency recovery code instead
+                </button>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" class="btn btn-primary btn-block btn-lg" id="submitBtn">
+                <span>Verify &amp; Continue</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+            </button>
+        </form>
+
+        <!-- Auth Footer Switch -->
+        <div class="auth-card-footer">
+            <p>Lost access to your device? <a href="{{ url_for('logout') }}" class="link-secondary">Cancel and return to login</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const toggleBtn = document.getElementById('toggleBackupBtn');
+    const totpSection = document.getElementById('totpSection');
+    const backupSection = document.getElementById('backupSection');
+    const totpInput = document.getElementById('totp_code');
+    const backupInput = document.getElementById('backup_code');
+    let usingBackup = false;
+
+    toggleBtn.addEventListener('click', () => {
+        usingBackup = !usingBackup;
+        if (usingBackup) {
+            totpSection.classList.add('hidden');
+            backupSection.classList.remove('hidden');
+            totpInput.value = '';
+            backupInput.focus();
+            toggleBtn.textContent = 'Use standard 6-digit authenticator code';
+        } else {
+            backupSection.classList.add('hidden');
+            totpSection.classList.remove('hidden');
+            backupInput.value = '';
+            totpInput.focus();
+            toggleBtn.textContent = 'Use emergency recovery code instead';
+        }
+    });
+
+    // Auto format TOTP spaces
+    totpInput.addEventListener('input', (e) => {
+        let val = e.target.value.replace(/\D/g, '').slice(0, 6);
+        if (val.length > 3) {
+            e.target.value = val.slice(0, 3) + ' ' + val.slice(3);
+        } else {
+            e.target.value = val;
+        }
+        if (val.length === 6) {
+            document.getElementById('twoFactorForm').submit();
+        }
+    });
+</script>
+{% endblock %}

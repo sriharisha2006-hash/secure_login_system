@@ -1,0 +1,292 @@
+{% extends "base.html" %}
+
+{% block title %}User Dashboard - SecureAuth{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper">
+    <div class="dashboard-container">
+        
+        <!-- Welcome Hero Banner -->
+        <div class="dashboard-hero">
+            <div class="hero-content">
+                <div class="hero-avatar">
+                    <span>{{ user.name[0]|upper }}</span>
+                </div>
+                <div class="hero-details">
+                    <div class="hero-badge">
+                        <span class="status-indicator-dot"></span>
+                        Authenticated Session Active
+                    </div>
+                    <h1 class="hero-title">Welcome back, {{ user.name }}!</h1>
+                    <p class="hero-subtitle">Signed in with email <strong class="text-white">{{ user.email }}</strong></p>
+                </div>
+            </div>
+            <div class="hero-actions">
+                <form action="{{ url_for('logout') }}" method="POST" class="inline-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <button type="submit" class="btn btn-light">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                        Sign Out
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Security Metrics Row -->
+        <div class="dashboard-metrics-grid">
+            <!-- Metric 1: 2FA Status -->
+            <div class="metric-card">
+                <div class="metric-icon {% if user.is_2fa_enabled %}metric-icon-success{% else %}metric-icon-warning{% endif %}">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    </svg>
+                </div>
+                <div class="metric-info">
+                    <span class="metric-label">Two-Factor Authentication</span>
+                    <div class="metric-value">
+                        {% if user.is_2fa_enabled %}
+                            <span class="badge badge-success">Enabled (TOTP)</span>
+                        {% else %}
+                            <span class="badge badge-warning">Disabled (Action Recommended)</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Metric 2: Password Encryption Algorithm -->
+            <div class="metric-card">
+                <div class="metric-icon metric-icon-primary">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                </div>
+                <div class="metric-info">
+                    <span class="metric-label">Password Hashing Protection</span>
+                    <div class="metric-value">
+                        <span class="badge badge-primary">{{ (user.hash_algo or 'bcrypt')|upper }} (Salted Hash)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Metric 3: Active Sessions -->
+            <div class="metric-card">
+                <div class="metric-icon metric-icon-info">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                        <line x1="8" y1="21" x2="16" y2="21"></line>
+                        <line x1="12" y1="17" x2="12" y2="21"></line>
+                    </svg>
+                </div>
+                <div class="metric-info">
+                    <span class="metric-label">Current Client IP</span>
+                    <div class="metric-value">
+                        <code class="text-dark">{{ client_ip }}</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Dashboard Content Split -->
+        <div class="dashboard-split-grid">
+            <!-- Left Column: User Profile & Security Configuration -->
+            <div class="dashboard-column">
+                
+                <!-- Profile Details Card -->
+                <div class="content-card">
+                    <div class="card-header">
+                        <div class="card-header-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                            <h2>Account Information</h2>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="info-list">
+                            <div class="info-row">
+                                <span class="info-key">Full Name</span>
+                                <span class="info-val font-semibold">{{ user.name }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-key">Email Address</span>
+                                <span class="info-val">{{ user.email }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-key">User ID</span>
+                                <span class="info-val"><code>#USR-{{ "%04d"|format(user.id) }}</code></span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-key">Account Created</span>
+                                <span class="info-val">{{ user.created_at }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-key">Last Login Recorded</span>
+                                <span class="info-val">{{ user.last_login_at or 'Just now' }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-key">Session Cookie Type</span>
+                                <span class="info-val badge badge-secondary">HTTP-Only / SameSite: Lax</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2FA Management Card -->
+                <div class="content-card">
+                    <div class="card-header">
+                        <div class="card-header-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                            </svg>
+                            <h2>Two-Factor Authentication Controls</h2>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        {% if user.is_2fa_enabled %}
+                            <div class="status-box status-box-active">
+                                <div class="status-box-header">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                    <strong>2FA Protection is Active</strong>
+                                </div>
+                                <p class="status-box-desc">
+                                    Your account requires a 6-digit TOTP verification code whenever logging in.
+                                </p>
+                            </div>
+
+                            <!-- Disable 2FA Form -->
+                            <details class="security-accordion">
+                                <summary class="btn btn-outline-danger btn-sm">Disable Two-Factor Authentication</summary>
+                                <form action="{{ url_for('disable_2fa') }}" method="POST" class="auth-form mt-3 p-3 border-rounded bg-light">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <p class="form-helper-text mb-2">To prevent unauthorized changes, enter your current password:</p>
+                                    <div class="form-group mb-2">
+                                        <input type="password" name="password" class="form-control" placeholder="Current Account Password" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-danger btn-sm">Confirm &amp; Disable 2FA</button>
+                                </form>
+                            </details>
+                        {% else %}
+                            <div class="status-box status-box-inactive">
+                                <div class="status-box-header">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                                    <strong>2FA is not enabled</strong>
+                                </div>
+                                <p class="status-box-desc">
+                                    Protect your account against credential stuffing and brute force attacks by enabling 2-Factor Authentication.
+                                </p>
+                                <a href="{{ url_for('setup_2fa') }}" class="btn btn-primary btn-sm">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                    Configure 2FA Now
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Column: Security Audit Trail & Sessions -->
+            <div class="dashboard-column">
+                
+                <!-- Security Audit Trail Card -->
+                <div class="content-card">
+                    <div class="card-header">
+                        <div class="card-header-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="16" y1="13" x2="8" y2="13"></line>
+                                <line x1="16" y1="17" x2="8" y2="17"></line>
+                                <polyline points="10 9 9 9 8 9"></polyline>
+                            </svg>
+                            <h2>Security Audit Activity Log</h2>
+                        </div>
+                        <span class="badge badge-secondary">Real-Time</span>
+                    </div>
+                    <div class="card-body p-0">
+                        {% if logs %}
+                            <div class="table-responsive">
+                                <table class="audit-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Event</th>
+                                            <th>Details</th>
+                                            <th>IP Address</th>
+                                            <th>Timestamp</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for log in logs %}
+                                            <tr>
+                                                <td>
+                                                    {% if 'LOGIN_SUCCESS' in log.event_type %}
+                                                        <span class="badge badge-success">{{ log.event_type }}</span>
+                                                    {% elif 'FAILED' in log.event_type or 'BLOCKED' in log.event_type %}
+                                                        <span class="badge badge-danger">{{ log.event_type }}</span>
+                                                    {% elif '2FA' in log.event_type %}
+                                                        <span class="badge badge-primary">{{ log.event_type }}</span>
+                                                    {% else %}
+                                                        <span class="badge badge-secondary">{{ log.event_type }}</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td class="text-sm">{{ log.details }}</td>
+                                                <td><code class="text-xs">{{ log.ip_address }}</code></td>
+                                                <td class="text-xs text-muted">{{ log.created_at }}</td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="empty-state p-4 text-center">
+                                <p class="text-muted">No security events logged yet.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Session Security Breakdown -->
+                <div class="content-card">
+                    <div class="card-header">
+                        <div class="card-header-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                            </svg>
+                            <h2>Active Browser Session Details</h2>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="info-list">
+                            <div class="info-row">
+                                <span class="info-key">User Agent</span>
+                                <span class="info-val text-xs text-muted word-break">{{ user_agent }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-key">XSS Mitigation</span>
+                                <span class="info-val badge badge-success">HTTP-Only Flag Enabled</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-key">SQL Injection Protection</span>
+                                <span class="info-val badge badge-success">Parameterized SQL Queries</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-key">CSRF Defense</span>
+                                <span class="info-val badge badge-success">Cryptographic Double-Submit Token</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
